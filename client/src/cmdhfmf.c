@@ -6704,15 +6704,13 @@ static int CmdHf14AMfSuperCard(const char *Cmd) {
         return PM3_EINVARG;
     }
 
-#define SUPER_MAX_TRACES    7
+#define SUPER_MAX_TRACES    8
 
     uint8_t trace = 0;
     uint8_t traces[SUPER_MAX_TRACES][16];
-
-    // read 7 traces from super card
+    // read 8 traces from super card
     for (trace = 0; trace < SUPER_MAX_TRACES; trace++) {
-
-        uint8_t data[] = {0x30, 0x00 + trace};
+        uint8_t data[] = {0xAA, 0xA8, 0x00, trace};
         uint32_t flags = ISO14A_CONNECT | ISO14A_RAW | ISO14A_APPEND_CRC | ISO14A_NO_RATS;
         clearCommandBuffer();
         SendCommandMIX(CMD_HF_ISO14443A_READER, flags, sizeof(data), 0, data, sizeof(data));
@@ -6726,10 +6724,10 @@ static int CmdHf14AMfSuperCard(const char *Cmd) {
         }
 
         uint16_t len = resp.oldarg[0] & 0xFFFF;
-        if (len != 18) {
+        if (len != 20) {
             break; // Not trace data
         }
-
+        PrintAndLogEx(SUCCESS, ">>> %s", sprint_hex_inrow(resp.data.asBytes, len));
         memcpy(&traces[trace], resp.data.asBytes, len - 2);
     }
 
@@ -6748,23 +6746,21 @@ static int CmdHf14AMfSuperCard(const char *Cmd) {
             nonces_t data;
 
             // first
-            uint16_t NT0 = (trace_data[6] << 8) | trace_data[7];
             data.cuid = bytes_to_num(trace_data, 4);
-            data.nonce = prng_successor(NT0, 31);
-            data.nr = bytes_to_num(trace_data + 8, 4);
-            data.ar = bytes_to_num(trace_data + 12, 4);
+            data.nonce = bytes_to_num(trace_data + 6, 4);
+            data.nr = bytes_to_num(trace_data + 10, 4);
+            data.ar = bytes_to_num(trace_data + 14, 4);
             data.at = 0;
 
             // second
             for (uint8_t s_strace = trace + 1; s_strace < 7; s_strace++) {
                 uint8_t *s_trace_data = traces[s_strace];
-                if (mfSectorNum(s_trace_data[5]) == mfSectorNum(trace_data[5])) {
-                    NT0 = (s_trace_data[6] << 8) | s_trace_data[7];
-                    data.nonce2 = prng_successor(NT0, 31);
-                    data.nr2 = bytes_to_num(s_trace_data + 8, 4);
-                    data.ar2 = bytes_to_num(s_trace_data + 12, 4);
-                    data.sector = mfSectorNum(trace_data[5]);
-                    data.keytype = trace_data[4];
+                if (mfSectorNum(s_trace_data[4]) == mfSectorNum(trace_data[4])) {
+                    data.nonce2 = bytes_to_num(s_trace_data + 6, 4);
+                    data.nr2 = bytes_to_num(s_trace_data + 10, 4);
+                    data.ar2 = bytes_to_num(s_trace_data + 14, 4);
+                    data.sector = mfSectorNum(trace_data[4]);
+                    data.keytype = trace_data[5];
                     data.state = FIRST;
 
                     uint64_t key64 = -1;
@@ -6775,7 +6771,6 @@ static int CmdHf14AMfSuperCard(const char *Cmd) {
                 }
             }
         }
-
     } else {
 
         // Super card generation 1
