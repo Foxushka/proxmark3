@@ -6704,12 +6704,12 @@ static int CmdHf14AMfSuperCard(const char *Cmd) {
         return PM3_EINVARG;
     }
 
-#define SUPER_MAX_TRACES    8
+#define SUPER_MAX_TRACES    7
 
     uint8_t trace = 0;
     uint8_t traces[SUPER_MAX_TRACES][16];
     // read 8 traces from super card
-    for (trace = 0; trace < SUPER_MAX_TRACES; trace++) {
+    for (trace = 1; trace < SUPER_MAX_TRACES + 1; trace++) {
         uint8_t data[] = {0xAA, 0xA8, 0x00, trace};
         uint32_t flags = ISO14A_CONNECT | ISO14A_RAW | ISO14A_APPEND_CRC | ISO14A_NO_RATS;
         clearCommandBuffer();
