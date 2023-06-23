@@ -6707,7 +6707,7 @@ static int CmdHf14AMfSuperCard(const char *Cmd) {
 #define SUPER_MAX_TRACES    7
 
     uint8_t trace = 0;
-    uint8_t traces[SUPER_MAX_TRACES][16];
+    uint8_t traces[SUPER_MAX_TRACES][18];
     // read 8 traces from super card
     for (trace = 1; trace < SUPER_MAX_TRACES + 1; trace++) {
         uint8_t data[] = {0xAA, 0xA8, 0x00, trace};
